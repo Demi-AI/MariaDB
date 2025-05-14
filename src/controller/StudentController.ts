@@ -30,5 +30,6 @@ export class StudentController extends Contorller {
         const resp: resp<Student | undefined> = await this.service.update(Request.body)
         Response.status(resp.code).send(resp);
     }
+    
 
 }

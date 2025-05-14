@@ -1,12 +1,11 @@
 import { Service } from "../abstract/Service";
 import { Student } from "../interfaces/Student";
 import { resp } from "../utils/resp";
-
-type seatInfo = {
-    schoolName:string,
-    department:string,
-    seatNumber:string
-}
+import { getStudentModel } from "../orm/StudentModel";
+import { getCourseModel } from "../orm/CourseModel";
+import { getDepartmentModel } from "../orm/DepartmentModel";
+import { getSemesterModel } from "../orm/SemesterModel";
+import { getEnrollmentModel } from "../orm/EnrollmentModel";
 
 export class StudentService extends Service {
 
@@ -28,21 +27,20 @@ export class StudentService extends Service {
      * @returns resp
      */
     public async create(info: Student): Promise<resp<Student>|undefined>{
-
-        const current = await this.read()
+        const StudentModel = getStudentModel();
+        // const current = await this.read()
         const resp:resp<Student>|undefined = {
             code: 200,
             message: "",
             body: undefined
         }
 
-        if (current && current.length>0) {
+        if (StudentModel) {
             try{
-                const nameValidator = await this.userNameValidator(info.userName);
-                if (current.length>=200) {
-                    resp.message = "student list is full";
-                    resp.code = 403;
-                }else{
+                const newStudent = await StudentModel.create(info);
+                    resp.body = newStudent;
+                    return resp;
+
                     if (nameValidator === "驗證通過") {
                         info.sid = String(current.length+1) ;
                         info._id = undefined;

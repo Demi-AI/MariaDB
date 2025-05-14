@@ -1,3 +1,38 @@
+import { getCourseModel } from "./CourseModel";
+import { getEnrollmentModel } from "./EnrollmentModel";
+import { getSemesterModel } from "./SemesterModel";
+import { getStudentModel } from "./StudentModel";
+
+export const setRef = () => {
+  const StudentModel = getStudentModel()
+  const CourseModel = getCourseModel()
+  const SemesterModel = getSemesterModel()
+  const EnrollmentModel = getEnrollmentModel();
+  if (StudentModel && CourseModel && SemesterModel && EnrollmentModel) {
+    StudentModel.hasMany(EnrollmentModel, {
+      foreignKey: 'Student_ID',
+      as: 'ENROLLMENT'
+    });
+    CourseModel.hasMany(EnrollmentModel, {
+      foreignKey: 'Course_ID',
+      as: 'ENROLLMENT'
+    });
+    EnrollmentModel.belongsTo(StudentModel, {
+      foreignKey: 'Student_ID',
+      targetKey: 'Student_ID'
+    });
+
+    EnrollmentModel.belongsTo(CourseModel, {
+      foreignKey: 'Course_ID',
+      targetKey: 'Course_ID'
+    });
+    EnrollmentModel.belongsTo(SemesterModel, {
+      foreignKey: 'Semester_ID'
+    });
+  }
+}
+
+/*
 const { sequelize } = require('../orm');
 const Student = require('./Student');
 const Department = require('./Department');
@@ -39,3 +74,4 @@ module.exports = {
   Course,
   Enrollment
 };
+*/

@@ -30,6 +30,8 @@ export class StudentController extends Contorller {
         const resp: resp<Student | undefined> = await this.service.update(Request.body)
         Response.status(resp.code).send(resp);
     }
-    
-
+    public async findUngraded(Request: Request, Response: Response) {
+        const res: resp<Array<Student> | undefined> = await this.service.findUngraded();
+        Response.status(res.code).send(res); // 寫法同 read
+    }
 }

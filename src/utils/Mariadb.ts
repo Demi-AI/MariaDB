@@ -1,6 +1,4 @@
-import * as mariadb from "mariadb"
-import {Sequelize } from "sequelize"
-import { PoolConnection } from "mariadb";
+import { Sequelize } from "sequelize"
 import { logger } from "../middlewares/log";
 
 
@@ -9,16 +7,20 @@ export class Mariadb {
     public sequelize: Sequelize | null = null;
 
     constructor() {
-        this.sequelize = new Sequelize('gym_center613630234', process.env.DBUSER as string, process.env.DBPASSWORD as string, {
-            host: process.env.DBHOST,
-            port: Number(process.env.DBPORT),
-            dialect: 'mariadb'
-        });
+        this.sequelize = new Sequelize('university_db',
+            process.env.DBUSER as string,
+            process.env.DBPASSWORD as string,
+            {
+                host: process.env.DBHOST,
+                port: Number(process.env.DBPORT),
+                dialect: 'mariadb'
+            }
+        );
 
         this.init();
     }
 
-    private async init(){
+    private async init() {
         if (this.sequelize) {
             try {
                 await this.sequelize.authenticate();
@@ -28,5 +30,5 @@ export class Mariadb {
             }
         }
     }
-    
+
 }

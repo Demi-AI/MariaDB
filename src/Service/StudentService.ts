@@ -9,183 +9,203 @@ import { getEnrollmentModel } from "../orm/EnrollmentModel";
 
 export class StudentService extends Service {
 
-    public async read(): Promise<Array<Student>> {
-        try {
-            // 查詢所有學生
-            const students: Array<Student> = await studentsModel.read({});
-            return students;
-        } catch (error) {
-            // 捕獲並記錄錯誤
-            console.error("Error fetching students from database:", error);
-            throw new Error("Database query failed");
-        }
-    }    
-
-    /**
-     * 新增學生
-     * @param info 學生資訊
-     * @returns resp
-     */
-    public async create(info: Student): Promise<resp<Student>|undefined>{
-        const StudentModel = getStudentModel();
-        // const current = await this.read()
-        const resp:resp<Student>|undefined = {
+    public async read(): Promise<resp<Array<Student> | undefined>> {
+        const StudentModel = getStudentModel()
+        const res: resp<Array<Student> | undefined> = {
             code: 200,
             message: "",
             body: undefined
         }
 
         if (StudentModel) {
-            try{
+            res.body = await StudentModel.findAll();
+        } else {
+            res.code = 500;
+            res.message = "server error";
+        }
+        return res;
+    }
+
+    /**
+     * 新增學生
+     * @param info 學生資訊
+     * @returns resp
+     */
+    public async create(info: Student): Promise<resp<Student | undefined>> {
+        const StudentModel = getStudentModel()
+        const res: resp<Student | undefined> = {
+            code: 200,
+            message: "",
+            body: undefined
+        }
+
+        if (StudentModel) {
+            try {
                 const newStudent = await StudentModel.create(info);
-                    resp.body = newStudent;
-                    return resp;
-
-                    if (nameValidator === "驗證通過") {
-                        info.sid = String(current.length+1) ;
-                        info._id = undefined;
-                        const res = new studentsModel(info);
-                        resp.body = await res.save();
-                    }else{
-                        resp.code = 403;
-                        resp.message = nameValidator;
-                    }
-                }
-            } catch(error){
-                resp.message = "server error";
-                resp.code = 500;
+                res.body = newStudent
+                return res;
+            } catch (error) {
+                res.code = 500;
+                res.message = error as string;
+                return res;
             }
-        }else{
-            resp.message = "server error";
-            resp.code = 500;
+        } else {
+            res.code = 500;
+            res.message = "server error";
+            return res;
         }
-
-        return resp;
-
-    }
-
-    /**
-     * 學生名字驗證器
-     * @param userName 學生名字
-     * tku ee 0787
-     * ee 科系縮寫
-     *  0787 四碼
-     * 座號檢查，跟之前有重複就噴錯  只能寫沒重複的號碼
-     */
-    public async userNameValidator(userName: string): Promise<
-    '學生名字格式不正確，應為 tku + 科系縮寫 + 四碼座號，例如: tkubm1760' | '座號已存在' | '校名必須為 tku' | '座號格式不正確，必須為四位數字。' | '驗證通過'
-    > {
-
-        if (userName.length < 7) { 
-            return ('學生名字格式不正確，應為 tku + 科系縮寫 + 四碼座號，例如: tkubm1760');
-        }
-
-        const info = this.userNameFormator(userName);
-
-        if (info.schoolName !== 'tku') {
-            return '校名必須為 tku';
-        }
-    
-        // 驗證座號(正則不想寫可以給 gpt 寫, 記得測試就好)
-        const seatNumberPattern = /^\d{4}$/; // 驗證4個數字
-        
-        if (!seatNumberPattern.test(info.seatNumber)) {
-            return '座號格式不正確，必須為四位數字。';
-        }
-
-        if (await this.existingSeatNumbers(info.seatNumber)) {
-            return '座號已存在'
-        }
-
-        return '驗證通過'
-        
-    }
-
-    /**
-     * 用戶名格式化
-     * @param userName 用戶名
-     * @returns seatInfo
-     */
-    public userNameFormator(userName: string){
-        const info:seatInfo = {
-            schoolName: userName.slice(0, 3),
-            department: userName.slice(3, userName.length - 4),
-            seatNumber: userName.slice(-4)
-        }
-        return info
-    }
-
-    /**
-     * 檢查用戶名是否存在
-     * @param SeatNumber 
-     * @returns boolean
-     */
-    public async existingSeatNumbers(SeatNumber:string):Promise<boolean>{
-        const students = await this.read();
-        let exist = false
-        if (students) {
-            students.forEach((student)=>{
-                const info = this.userNameFormator(student.userName)
-                if (info.seatNumber === SeatNumber) {
-                    exist = true;
-                }
-            })
-        }
-        return exist
     }
 
     /**
      * 刪除一筆用戶
-     * @param id:用戶_id
+     * @param Student_ID 學生ID
      * @returns resp<any>
      */
-    public async delete(id:string){
-        const resp:resp<any> = {
+    public async delete(Student_ID: string): Promise<resp<Student | undefined>> {
+        const StudentModel = getStudentModel()
+        const res: resp<Student | undefined> = {
             code: 200,
             message: "",
             body: undefined
         }
 
-        try {
-            const res = await studentsModel.delete({_id:id});
-            resp.message = "sucess";
-            resp.body = res;
-        } catch (error) {
-            resp.message = error as string;
-            resp.code = 500;
+        if (StudentModel) {
+            try {
+                const student = await StudentModel.findByPk(Student_ID);
+                if (student == null) {
+                    res.code = 404;
+                    res.message = "student not found"
+                    return res;
+                } else {
+                    await student.destroy();
+                    res.body = student;
+                    res.message = `${Student_ID} delete sucess`
+                    return res;
+                }
+            } catch (error) {
+
+            }
+        } else {
+            res.code = 500;
+            res.message = "server error";
         }
-        return resp;
+        return res;
     }
-    
+
     /**
      * 更新一筆用戶的所有資料
-     * @param id 用戶_id
-     * @param info 新的學生資料
+     * @param Student_ID 學生ID
+     * @param info 學生資訊
      * @returns 狀態
      */
-    public async update(id: string, info: Student): Promise<resp<Student> | undefined> {
-        const resp: resp<Student> | undefined = {
+    public async update(info: Student): Promise<resp<Student | undefined>> {
+        const StudentModel = getStudentModel()
+        const res: resp<Student | undefined> = {
             code: 200,
             message: "",
             body: undefined
-        };
-        try {
-            // 使用 findByIdAndUpdate 方法直接更新數據
-            const user = await studentsModel.update({ _id: id }, info, { new: true });
-    
-            if (user) {
-                resp.body = user;
-                resp.message = "Update successful";
-            } else {
-                resp.code = 404;
-                resp.message = "User not found";
-            }
-        } catch (error) {
-            resp.code = 500;
-            resp.message = "Server error";
-            console.error('Error updating student data:', error);
         }
-    
-        return resp;
-    }    
+
+        if (StudentModel) {
+            try {
+                const student = await StudentModel.findByPk(info.Student_ID);
+                if (student == null) {
+                    res.code = 404;
+                    res.message = "student not found"
+                    return res;
+                } else {
+
+                    Object.assign(student, info);
+
+                    await student.save();
+
+                    res.body = student;
+
+                    return res;
+                }
+            } catch (error) {
+                res.code = 500;
+                res.message = error as string;
+                return res;
+            }
+        } else {
+            res.code = 500;
+            res.message = "server error";
+        }
+        return res;
+    }
+
+    public async findUngraded(): Promise<resp<Array<Student> | undefined>> {
+        const StudentModel = getStudentModel();
+        const EnrollmentModel = getEnrollmentModel();
+        const CourseModel = getCourseModel();
+        const res: resp<Array<Student> | undefined> = {
+            code: 200,
+            message: "",
+            body: undefined
+        }
+
+        if (StudentModel && EnrollmentModel && CourseModel) {
+            try {
+                StudentModel.hasMany(EnrollmentModel, {
+                    foreignKey: 'Student_ID',
+                    as: 'ENROLLMENTS'
+                });
+
+                CourseModel.hasMany(EnrollmentModel, {
+                    foreignKey: 'Course_ID',
+                    as: 'ENROLLMENTS'
+                });
+
+                EnrollmentModel.belongsTo(StudentModel, {
+                    foreignKey: 'Student_ID',
+                    targetKey: 'Student_ID'
+                });
+
+                EnrollmentModel.belongsTo(CourseModel, {
+                    foreignKey: 'Course_ID',
+                    targetKey: 'Course_ID'
+                });
+
+                res.body = await StudentModel.findAll({
+                    attributes: ['Student_ID', 'Name'],
+                    include: [
+                        {
+                            model: EnrollmentModel,
+                            as: 'ENROLLMENTS',
+                            attributes: ['Course_ID', 'Semester_ID'],
+                            where: {
+                                Grade: null
+                            },
+                            include: [
+                                {
+                                    model: CourseModel,
+                                    as: 'COURSE',
+                                    attributes: ['Title'],
+                                }
+                            ]
+                        }
+                    ]
+                });
+                return res;
+            } catch (error: any) {
+                let errorMessage = `Error: ${error.name} \n`;
+                if (error.message) {
+                    errorMessage += `, Message: ${error.message}\n`;
+                }
+                if (error.stack) {
+                    errorMessage += `, Stack: ${error.stack}\n`;
+                }
+                if (error.errors) {
+                    errorMessage += `, Details: ${error.errors.map((e: any) => e.message).join(', ')}`;
+                }
+                res.message = errorMessage;
+                return res;
+            }
+        } else {
+            res.code = 500;
+            res.message = "server error";
+        }
+        return res;
+    }
 }
